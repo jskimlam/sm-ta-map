@@ -1,0 +1,2223 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEA Region SM Companies Map - Clustered</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+        }
+        
+        #header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        #header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        #stats {
+            display: flex;
+            gap: 30px;
+            font-size: 14px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+        
+        #stats .stat {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        #stats .stat .number {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        #map {
+            width: 100%;
+            height: calc(100vh - 200px);
+            border: none;
+        }
+        
+        #legend {
+            background: white;
+            padding: 15px 20px;
+            margin: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        #legend h3 {
+            margin-bottom: 12px;
+            font-size: 16px;
+            color: #333;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .legend-color {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            margin-right: 10px;
+            border: 2px solid white;
+            box-shadow: 0 0 0 1px rgba(0,0,0,0.2);
+        }
+        
+        .legend-count {
+            margin-left: auto;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        /* 마커 스타일 - 원래의 2분의 1 크기 (18px) */
+        .custom-marker {
+            background: transparent;
+            border: none;
+        }
+        
+        .marker-pin {
+            width: 18px;
+            height: 18px;
+            border-radius: 50% 50% 50% 0;
+            position: relative;
+            transform: rotate(-45deg);
+            left: 50%;
+            top: 50%;
+            margin: -11px 0 0 -9px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+            transition: all 0.2s ease;
+        }
+        
+        .marker-pin:hover {
+            transform: rotate(-45deg) scale(1.3);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        
+        .marker-pin::after {
+            content: '';
+            width: 8px;
+            height: 8px;
+            margin: 5px 0 0 5px;
+            background: white;
+            position: absolute;
+            border-radius: 50%;
+        }
+        
+        /* 삼각형 마커 - 정기보수 예정 */
+        .marker-triangle {
+            width: 0;
+            height: 0;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-bottom: 18px solid;
+            position: relative;
+            left: 50%;
+            top: 50%;
+            margin: -11px 0 0 -10px;
+            filter: drop-shadow(0 2px 6px rgba(0,0,0,0.4));
+            transition: all 0.2s ease;
+        }
+        
+        .marker-triangle:hover {
+            transform: scale(1.3);
+            filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5));
+            z-index: 1000;
+        }
+        
+        .marker-triangle::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-bottom: 8px solid white;
+            left: -5px;
+            bottom: 2px;
+        }
+        
+        /* 클러스터 삼각형 */
+        .marker-triangle-cluster {
+            width: 0;
+            height: 0;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-bottom: 18px solid;
+            position: relative;
+            filter: drop-shadow(0 2px 6px rgba(0,0,0,0.4));
+            transition: all 0.2s ease;
+        }
+        
+        .marker-triangle-cluster:hover {
+            transform: scale(1.3);
+            filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5));
+        }
+        
+        .triangle-cluster-number {
+            position: absolute;
+            color: white;
+            font-weight: bold;
+            font-size: 9px;
+            left: -4px;
+            bottom: 3px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        }
+        
+        /* 클러스터 마커 - 숫자 표시 */
+        .marker-cluster {
+            width: 18px;
+            height: 18px;
+            border-radius: 50% 50% 50% 0;
+            position: relative;
+            transform: rotate(-45deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+            transition: all 0.2s ease;
+        }
+        
+        .marker-cluster:hover {
+            transform: rotate(-45deg) scale(1.3);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+        
+        .cluster-number {
+            position: absolute;
+            color: white;
+            font-weight: bold;
+            font-size: 9px;
+            transform: rotate(45deg);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        }
+        
+        /* 정기보수 펄스 효과 */
+        .marker-pin.has-maintenance::before {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            border-radius: 50% 50% 50% 0;
+            background: inherit;
+            opacity: 0.6;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                opacity: 0.6;
+            }
+            50% {
+                transform: scale(1.8);
+                opacity: 0;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 0;
+            }
+        }
+        
+        /* 팝업 스타일 */
+        .leaflet-popup-content-wrapper {
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.25);
+            padding: 0;
+            max-width: 350px;
+        }
+        
+        .leaflet-popup-content {
+            margin: 0;
+            font-size: 14px;
+            line-height: 1.6;
+            min-width: 280px;
+            max-width: 350px;
+        }
+        
+        .popup-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 12px 12px 0 0;
+        }
+        
+        .popup-title {
+            font-size: 17px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .popup-location {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+        
+        .popup-body {
+            padding: 15px;
+            background: white;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .current-maintenance-alert {
+            background: #2C3E50;
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 13px;
+        }
+        
+        .company-item {
+            background: #f8f9fa;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .company-item:hover {
+            background: #e9ecef;
+            transform: translateX(3px);
+        }
+        
+        .company-item.current-maintenance {
+            border-left-color: #2C3E50;
+            background: #f0f0f0;
+        }
+        
+        .company-name {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+        
+        .company-details {
+            font-size: 12px;
+            color: #666;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .detail-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: white;
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+        
+        .capacity-badge {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        
+        .maintenance-badge {
+            display: inline-block;
+            background: #ff6b6b;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        
+        .no-maintenance {
+            background: #51cf66;
+        }
+        
+        .popup-info {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .popup-icon {
+            font-size: 20px;
+            margin-right: 10px;
+            min-width: 25px;
+        }
+        
+
+        /* 위치 라벨 */
+        .location-label {
+            background: rgba(102, 126, 234, 0.95);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: bold;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+            white-space: nowrap;
+            pointer-events: none;
+        }
+        
+        .location-label::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 50%;
+            margin-left: -5px;
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 5px solid rgba(102, 126, 234, 0.95);
+        }
+
+        .leaflet-popup-tip {
+            box-shadow: 0 3px 14px rgba(0,0,0,0.15);
+        }
+    </style>
+</head>
+<body>
+    <div id="header">
+        <h1>🗺️ NEA Region SM Production Companies</h1>
+        <div id="stats">
+            <div class="stat">
+                <span class="number" id="total-count">0</span>
+                <span>Total Companies</span>
+            </div>
+            <div class="stat">
+                <span class="number">4</span>
+                <span>Countries</span>
+            </div>
+            <div class="stat">
+                <span class="number" id="maintenance-count">0</span>
+                <span>With Maintenance</span>
+            </div>
+            <div class="stat" style="background: rgba(44,62,80,0.1); padding: 5px 10px; border-radius: 8px;">
+                <span class="number" id="current-maintenance-count" style="color: #2C3E50;">0</span>
+                <span style="color: #2C3E50;">⚫ Current (Feb)</span>
+            </div>
+            <div class="stat" style="background: rgba(52,152,219,0.1); padding: 5px 10px; border-radius: 8px;">
+                <span class="number" id="future-maintenance-count" style="color: #3498DB;">0</span>
+                <span style="color: #3498DB;">🔵 Scheduled</span>
+            </div>
+        </div>
+    </div>
+    
+    <div id="map"></div>
+    
+    <div id="legend">
+        <h3>📍 Countries</h3>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #FF6B6B;"></div>
+            <span>China (Mainland)</span>
+            <span class="legend-count" id="china-count">0</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #4ECDC4;"></div>
+            <span>Korea, South</span>
+            <span class="legend-count" id="korea-count">0</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #FFE66D;"></div>
+            <span>Japan</span>
+            <span class="legend-count" id="japan-count">0</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #A8E6CF;"></div>
+            <span>Taiwan</span>
+            <span class="legend-count" id="taiwan-count">0</span>
+        </div>
+        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e0e0e0;">
+            <div class="legend-item" style="margin-bottom: 12px; background: rgba(44,62,80,0.05); padding: 8px; border-radius: 6px;">
+                <div class="legend-color" style="background-color: #2C3E50; width: 28px; height: 28px;"></div>
+                <span><strong>⚫ 현재 정기보수 중 (2월)</strong></span>
+            </div>
+            <div class="legend-item" style="margin-bottom: 12px; background: rgba(52,152,219,0.05); padding: 8px; border-radius: 6px;">
+                <div style="width: 0; height: 0; border-left: 14px solid transparent; border-right: 14px solid transparent; border-bottom: 24px solid #3498DB; margin-right: 10px;"></div>
+                <span><strong>🔵 정기보수 예정 (3월 이후)</strong></span>
+            </div>
+            <p style="font-size: 12px; color: #666; margin-bottom: 5px;">💡 숫자가 있는 마커는 여러 업체가 있습니다</p>
+            <p style="font-size: 12px; color: #666;">⚡ 펄스 효과가 있는 마커는 정기보수 일정이 있습니다</p>
+        </div>
+    </div>
+
+    <script>
+        // 클러스터 데이터
+        const clusters = [
+  {
+    "lat": 32.9,
+    "lng": 115.82,
+    "location": "Fuyang",
+    "country": "CHINA (MAINLAND)",
+    "cluster_size": 1,
+    "companies": [
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Anhui Haoyuan Chemical Group Co., Ltd.",
+        "location": "Fuyang",
+        "capacity": 260,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 32.9,
+        "lng": 115.82,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 32.63,
+    "lng": 117.0,
+    "location": "Huainan",
+    "country": "CHINA (MAINLAND)",
+    "cluster_size": 1,
+    "companies": [
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Anhui Jiaxi New Material Technology Co., Ltd.",
+        "location": "Huainan",
+        "capacity": 350,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 32.63,
+        "lng": 117.0,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 41.12,
+    "lng": 122.05,
+    "location": "Panjin",
+    "country": "CHINA (MAINLAND)",
+    "cluster_size": 2,
+    "companies": [
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Bora LyondellBasell Petrochemical Co Ltd",
+        "location": "Panjin",
+        "capacity": 350,
+        "maintenance": "12월",
+        "is_current_maintenance": false,
+        "lat": 41.12,
+        "lng": 122.05,
+        "has_future_maintenance": true
+      },
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Panjin Ethylene Co., Ltd.",
+        "location": "Panjin",
+        "capacity": 195,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 41.12,
+        "lng": 122.05,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": true
+  },
+  {
+    "lat": 45.58,
+    "lng": 84.87,
+    "location": "Karamay",
+    "country": "CHINA (MAINLAND)",
+    "cluster_size": 2,
+    "companies": [
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "China Petroleum Engineering Co Ltd",
+        "location": "Karamay",
+        "capacity": 40,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 45.58,
+        "lng": 84.87,
+        "has_future_maintenance": false
+      },
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "PetroChina Dushanzi Petrochemical Co",
+        "location": "Karamay",
+        "capacity": 360,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 45.58,
+        "lng": 84.87,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 23.11,
+    "lng": 114.42,
+    "location": "Huizhou",
+    "country": "CHINA (MAINLAND)",
+    "cluster_size": 2,
+    "companies": [
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "CNOOC and Shell Petrochemicals Co Ltd (CSPC)",
+        "location": "Huizhou",
+        "capacity": 637,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 23.11,
+        "lng": 114.42,
+        "has_future_maintenance": false
+      },
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "CNOOC and Shell Petrochemicals Co Ltd (CSPC)",
+        "location": "Huizhou",
+        "capacity": 650,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 23.11,
+        "lng": 114.42,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 19.1,
+    "lng": 108.65,
+    "location": "Dongfang",
+    "country": "CHINA (MAINLAND)",
+    "cluster_size": 1,
+    "companies": [
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "CNOOC Dongfang Petrochemical Co., Ltd.",
+        "location": "Dongfang",
+        "capacity": 120,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 19.1,
+        "lng": 108.65,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 29.87,
+    "lng": 121.55,
+    "location": "Ningbo",
+    "country": "CHINA (MAINLAND)",
+    "cluster_size": 5,
+    "companies": [
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Cnooc Ningbo Daxie Petrochemical Co Ltd",
+        "location": "Ningbo",
+        "capacity": 280,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 29.87,
+        "lng": 121.55,
+        "has_future_maintenance": false
+      },
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Ningbo Huatai Shengfu Polymeric Materials Co., Ltd.",
+        "location": "Ningbo",
+        "capacity": 400,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 29.87,
+        "lng": 121.55,
+        "has_future_maintenance": false
+      },
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Ningbo Keyuan Refining Co., Ltd.",
+        "location": "Ningbo",
+        "capacity": 80,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 29.87,
+        "lng": 121.55,
+        "has_future_maintenance": false
+      },
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Ningbo ZRCC Lyondell Chemical Co Ltd",
+        "location": "Ningbo",
+        "capacity": 620,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 29.87,
+        "lng": 121.55,
+        "has_future_maintenance": false
+      },
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Ningbo ZRCC LyondellBasell New Material Co. Ltd.",
+        "location": "Ningbo",
+        "capacity": 600,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 29.87,
+        "lng": 121.55,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 23.55,
+    "lng": 116.37,
+    "location": "Jieyang",
+    "country": "CHINA (MAINLAND)",
+    "cluster_size": 1,
+    "companies": [
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "CNPC/PDVSA Guangdong Petrochemical Co. Ltd.",
+        "location": "Jieyang",
+        "capacity": 800,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 23.55,
+        "lng": 116.37,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 46.58,
+    "lng": 125.1,
+    "location": "Daqing",
+    "country": "CHINA (MAINLAND)",
+    "cluster_size": 2,
+    "companies": [
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Daqing Petrochemical Company",
+        "location": "Daqing",
+        "capacity": 100,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 46.58,
+        "lng": 125.1,
+        "has_future_maintenance": false
+      },
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Daqing Petrochemical Company",
+        "location": "Daqing",
+        "capacity": 125,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 46.58,
+        "lng": 125.1,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 24.52,
+    "lng": 117.65,
+    "location": "Zhangzhou",
+    "country": "CHINA (MAINLAND)",
+    "cluster_size": 2,
+    "companies": [
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Fujian Gulei Petrochemical Co Ltd",
+        "location": "Zhangzhou",
+        "capacity": 600,
+        "maintenance": "3월, 4월",
+        "is_current_maintenance": false,
+        "lat": 24.52,
+        "lng": 117.65,
+        "has_future_maintenance": true
+      },
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Fujian Haiquan Chemical Co., Ltd",
+        "location": "Zhangzhou",
+        "capacity": 226,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 24.52,
+        "lng": 117.65,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": true
+  },
+  {
+    "lat": 21.66,
+    "lng": 110.92,
+    "location": "Maoming",
+    "country": "CHINA (MAINLAND)",
+    "cluster_size": 1,
+    "companies": [
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Guangdong Xinhuayue Petrochemical Group Co., Ltd.",
+        "location": "Maoming",
+        "capacity": 30,
+        "maintenance": "11월, 12월",
+        "is_current_maintenance": false,
+        "lat": 21.66,
+        "lng": 110.92,
+        "has_future_maintenance": true
+      }
+    ],
+    "has_future_maintenance": true
+  },
+  {
+    "lat": 35.29,
+    "lng": 115.09,
+    "location": "Dongming",
+    "country": "CHINA (MAINLAND)",
+    "cluster_size": 1,
+    "companies": [
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Guoen Chemical (Dongming) Co., Ltd.",
+        "location": "Dongming",
+        "capacity": 150,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 35.29,
+        "lng": 115.09,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 38.91,
+    "lng": 121.61,
+    "location": "Dalian",
+    "country": "CHINA (MAINLAND)",
+    "cluster_size": 1,
+    "companies": [
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Hengli Petrochemical (Dalian) Co., Ltd.",
+        "location": "Dalian",
+        "capacity": 720,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 38.91,
+        "lng": 121.61,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 36.71,
+    "lng": 119.16,
+    "location": "Weifang",
+    "country": "CHINA (MAINLAND)",
+    "cluster_size": 1,
+    "companies": [
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Hongrun Petrochemical (Weifang) Co Ltd",
+        "location": "Weifang",
+        "capacity": 120,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 36.71,
+        "lng": 119.16,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 36.06,
+    "lng": 103.83,
+    "location": "Lanzhou",
+    "country": "CHINA (MAINLAND)",
+    "cluster_size": 2,
+    "companies": [
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Lanzhou Huifeng Petrochemical Co., Ltd.",
+        "location": "Lanzhou",
+        "capacity": 25,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 36.06,
+        "lng": 103.83,
+        "has_future_maintenance": false
+      },
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "PetroChina Lanzhou Petrochemical Co",
+        "location": "Lanzhou",
+        "capacity": 60,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 36.06,
+        "lng": 103.83,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 37.43,
+    "lng": 118.67,
+    "location": "Dongying",
+    "country": "CHINA (MAINLAND)",
+    "cluster_size": 4,
+    "companies": [
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Lihuayi Lijin Refining and Chemical Co Ltd",
+        "location": "Dongying",
+        "capacity": 80,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 37.43,
+        "lng": 118.67,
+        "has_future_maintenance": false
+      },
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Lihuayi Lijin Refining and Chemical Co Ltd",
+        "location": "Dongying",
+        "capacity": 720,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 37.43,
+        "lng": 118.67,
+        "has_future_maintenance": false
+      },
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Shandong Huaxing Petrochemical Group Co Ltd",
+        "location": "Dongying",
+        "capacity": 80,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 37.43,
+        "lng": 118.67,
+        "has_future_maintenance": false
+      },
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Zhenhua Petrochemical Co., Ltd.",
+        "location": "Dongying",
+        "capacity": 503,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 37.43,
+        "lng": 118.67,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 31.81,
+    "lng": 119.97,
+    "location": "Changzhou",
+    "country": "CHINA (MAINLAND)",
+    "cluster_size": 2,
+    "companies": [
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "New Solar Technology Group Co., Ltd.",
+        "location": "Changzhou",
+        "capacity": 250,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 31.81,
+        "lng": 119.97,
+        "has_future_maintenance": false
+      },
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "New Solar Technology Group Co., Ltd.",
+        "location": "Changzhou",
+        "capacity": 300,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 31.81,
+        "lng": 119.97,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 41.88,
+    "lng": 123.92,
+    "location": "Fushun",
+    "country": "CHINA (MAINLAND)",
+    "cluster_size": 1,
+    "companies": [
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "PetroChina Fushun Petrochemical Co",
+        "location": "Fushun",
+        "capacity": 60,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 41.88,
+        "lng": 123.92,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 21.95,
+    "lng": 108.62,
+    "location": "Qinzhou",
+    "country": "CHINA (MAINLAND)",
+    "cluster_size": 2,
+    "companies": [
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "PetroChina Guangxi Petrochemical Co Ltd",
+        "location": "Qinzhou",
+        "capacity": 35,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 21.95,
+        "lng": 108.62,
+        "has_future_maintenance": false
+      },
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "PetroChina Guangxi Petrochemical Co Ltd",
+        "location": "Qinzhou",
+        "capacity": 302,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 21.95,
+        "lng": 108.62,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 38.7,
+    "lng": 116.09,
+    "location": "Renqiu",
+    "country": "CHINA (MAINLAND)",
+    "cluster_size": 1,
+    "companies": [
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "PetroChina Huabei Petrochemical Co",
+        "location": "Renqiu",
+        "capacity": 80,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 38.7,
+        "lng": 116.09,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 43.84,
+    "lng": 126.55,
+    "location": "Jilin City",
+    "country": "CHINA (MAINLAND)",
+    "cluster_size": 2,
+    "companies": [
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "PetroChina Jilin Petrochemical Co",
+        "location": "Jilin City",
+        "capacity": 600,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 43.84,
+        "lng": 126.55,
+        "has_future_maintenance": false
+      },
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "PetroChina Jilin Petrochemical Co",
+        "location": "Jilin City",
+        "capacity": 320,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 43.84,
+        "lng": 126.55,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 40.71,
+    "lng": 120.84,
+    "location": "Huludao",
+    "country": "CHINA (MAINLAND)",
+    "cluster_size": 1,
+    "companies": [
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "PetroChina Jinxi Petrochemical Co",
+        "location": "Huludao",
+        "capacity": 60,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 40.71,
+        "lng": 120.84,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 41.12,
+    "lng": 121.14,
+    "location": "Jinzhou",
+    "country": "CHINA (MAINLAND)",
+    "cluster_size": 1,
+    "companies": [
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "PetroChina Jinzhou Petrochemical Co",
+        "location": "Jinzhou",
+        "capacity": 80,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 41.12,
+        "lng": 121.14,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 36.07,
+    "lng": 120.38,
+    "location": "Qingdao",
+    "country": "CHINA (MAINLAND)",
+    "cluster_size": 2,
+    "companies": [
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Qingdao Haiwan Chemical Co., Ltd.",
+        "location": "Qingdao",
+        "capacity": 500,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 36.07,
+        "lng": 120.38,
+        "has_future_maintenance": false
+      },
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Sinopec Qingdao Refining and Chemical Co Ltd",
+        "location": "Qingdao",
+        "capacity": 80,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 36.07,
+        "lng": 120.38,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 34.6,
+    "lng": 119.22,
+    "location": "Lianyungang",
+    "country": "CHINA (MAINLAND)",
+    "cluster_size": 2,
+    "companies": [
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Satellite Chemical Co., Ltd.",
+        "location": "Lianyungang",
+        "capacity": 600,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 34.6,
+        "lng": 119.22,
+        "has_future_maintenance": false
+      },
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Shenghong Petrochemical Co Ltd",
+        "location": "Lianyungang",
+        "capacity": 450,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 34.6,
+        "lng": 119.22,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 36.59,
+    "lng": 109.49,
+    "location": "Yan'an",
+    "country": "CHINA (MAINLAND)",
+    "cluster_size": 1,
+    "companies": [
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Shaanxi Yanchang Petroleum (Group) Co., Ltd., Refinery & Chemical Company",
+        "location": "Yan'an",
+        "capacity": 120,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 36.59,
+        "lng": 109.49,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 37.46,
+    "lng": 121.45,
+    "location": "Yantai",
+    "country": "CHINA (MAINLAND)",
+    "cluster_size": 3,
+    "companies": [
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Shandong Yulong Petrochemical Co Ltd",
+        "location": "Yantai",
+        "capacity": 500,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 37.46,
+        "lng": 121.45,
+        "has_future_maintenance": false
+      },
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Wanhua Chemical Group Co.,Ltd",
+        "location": "Yantai",
+        "capacity": 650,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 37.46,
+        "lng": 121.45,
+        "has_future_maintenance": false
+      },
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Wanhua Chemical Group Co.,Ltd",
+        "location": "Yantai",
+        "capacity": 12,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 37.46,
+        "lng": 121.45,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 30.74,
+    "lng": 121.34,
+    "location": "Jinshan",
+    "country": "CHINA (MAINLAND)",
+    "cluster_size": 1,
+    "companies": [
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Shanghai SECCO Petrochemical Co Ltd",
+        "location": "Jinshan",
+        "capacity": 650,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 30.74,
+        "lng": 121.34,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 38.3,
+    "lng": 116.84,
+    "location": "Cangzhou",
+    "country": "CHINA (MAINLAND)",
+    "cluster_size": 1,
+    "companies": [
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Shengteng Technology Co., Ltd.",
+        "location": "Cangzhou",
+        "capacity": 80,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 38.3,
+        "lng": 116.84,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 24.87,
+    "lng": 118.68,
+    "location": "Quanzhou",
+    "country": "CHINA (MAINLAND)",
+    "cluster_size": 1,
+    "companies": [
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Sinochem Quanzhou Petrochemical Co Ltd",
+        "location": "Quanzhou",
+        "capacity": 450,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 24.87,
+        "lng": 118.68,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 30.51,
+    "lng": 117.05,
+    "location": "Anqing",
+    "country": "CHINA (MAINLAND)",
+    "cluster_size": 2,
+    "companies": [
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Sinopec Anqing Company",
+        "location": "Anqing",
+        "capacity": 100,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 30.51,
+        "lng": 117.05,
+        "has_future_maintenance": false
+      },
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Sinopec Anqing Company",
+        "location": "Anqing",
+        "capacity": 400,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 30.51,
+        "lng": 117.05,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 29.37,
+    "lng": 113.09,
+    "location": "Yueyang",
+    "country": "CHINA (MAINLAND)",
+    "cluster_size": 1,
+    "companies": [
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Sinopec Group Assets Management Corporation Baling Petrochemical Branch",
+        "location": "Yueyang",
+        "capacity": 120,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 29.37,
+        "lng": 113.09,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 23.13,
+    "lng": 113.26,
+    "location": "Guangzhou",
+    "country": "CHINA (MAINLAND)",
+    "cluster_size": 1,
+    "companies": [
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Sinopec Guangzhou Co",
+        "location": "Guangzhou",
+        "capacity": 80,
+        "maintenance": "10월, 11월, 12월",
+        "is_current_maintenance": false,
+        "lat": 23.13,
+        "lng": 113.26,
+        "has_future_maintenance": true
+      }
+    ],
+    "has_future_maintenance": true
+  },
+  {
+    "lat": 19.73,
+    "lng": 109.18,
+    "location": "Yangpu",
+    "country": "CHINA (MAINLAND)",
+    "cluster_size": 2,
+    "companies": [
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Sinopec Hainan Refining and Chemical Co Ltd",
+        "location": "Yangpu",
+        "capacity": 500,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 19.73,
+        "lng": 109.18,
+        "has_future_maintenance": false
+      },
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "SINOPEC Hainan Shihua Sunchem Chemicals Co., Ltd.",
+        "location": "Yangpu",
+        "capacity": 80,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 19.73,
+        "lng": 109.18,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 31.03,
+    "lng": 112.2,
+    "location": "Jingmen",
+    "country": "CHINA (MAINLAND)",
+    "cluster_size": 1,
+    "companies": [
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Sinopec Jingmen Co",
+        "location": "Jingmen",
+        "capacity": 80,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 31.03,
+        "lng": 112.2,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 32.06,
+    "lng": 118.8,
+    "location": "Nanjing",
+    "country": "CHINA (MAINLAND)",
+    "cluster_size": 2,
+    "companies": [
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Sinopec Jinling Co",
+        "location": "Nanjing",
+        "capacity": 60,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 32.06,
+        "lng": 118.8,
+        "has_future_maintenance": false
+      },
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Various_China Facilities",
+        "location": "Nanjing",
+        "capacity": 120,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 32.06,
+        "lng": 118.8,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 34.62,
+    "lng": 112.45,
+    "location": "Luoyang",
+    "country": "CHINA (MAINLAND)",
+    "cluster_size": 1,
+    "companies": [
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Sinopec Luoyang Co",
+        "location": "Luoyang",
+        "capacity": 120,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 34.62,
+        "lng": 112.45,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 39.13,
+    "lng": 117.2,
+    "location": "Tianjin",
+    "country": "CHINA (MAINLAND)",
+    "cluster_size": 1,
+    "companies": [
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Sinopec SABIC Tianjin Petrochemical Co Ltd",
+        "location": "Tianjin",
+        "capacity": 35,
+        "maintenance": "1월, 2월, 12월",
+        "is_current_maintenance": true,
+        "lat": 39.13,
+        "lng": 117.2,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 32.17,
+    "lng": 119.9,
+    "location": "Taixing",
+    "country": "CHINA (MAINLAND)",
+    "cluster_size": 1,
+    "companies": [
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "SP Chemicals (Taixing) Co., Ltd.",
+        "location": "Taixing",
+        "capacity": 320,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 32.17,
+        "lng": 119.9,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 39.63,
+    "lng": 118.18,
+    "location": "Tangshan",
+    "country": "CHINA (MAINLAND)",
+    "cluster_size": 1,
+    "companies": [
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Tangshan Risun Chemical Co Ltd",
+        "location": "Tangshan",
+        "capacity": 300,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 39.63,
+        "lng": 118.18,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 39.02,
+    "lng": 117.7,
+    "location": "Binhai New Area",
+    "country": "CHINA (MAINLAND)",
+    "cluster_size": 2,
+    "companies": [
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Tianjin Bohua Chemical Development Co Ltd",
+        "location": "Binhai New Area",
+        "capacity": 450,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 39.02,
+        "lng": 117.7,
+        "has_future_maintenance": false
+      },
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Tianjin Dagu Chemical Co Ltd",
+        "location": "Binhai New Area",
+        "capacity": 500,
+        "maintenance": "2월, 3월, 4월",
+        "is_current_maintenance": true,
+        "lat": 39.02,
+        "lng": 117.7,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 29.99,
+    "lng": 122.21,
+    "location": "Zhoushan",
+    "country": "CHINA (MAINLAND)",
+    "cluster_size": 3,
+    "companies": [
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Zhejiang Petroleum and Chemical Co Ltd",
+        "location": "Zhoushan",
+        "capacity": 1200,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 29.99,
+        "lng": 122.21,
+        "has_future_maintenance": false
+      },
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Zhejiang Petroleum and Chemical Co Ltd",
+        "location": "Zhoushan",
+        "capacity": 600,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 29.99,
+        "lng": 122.21,
+        "has_future_maintenance": false
+      },
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Zhejiang Petroleum and Chemical Co Ltd",
+        "location": "Zhoushan",
+        "capacity": 600,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 29.99,
+        "lng": 122.21,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 36.81,
+    "lng": 118.05,
+    "location": "Zibo",
+    "country": "CHINA (MAINLAND)",
+    "cluster_size": 1,
+    "companies": [
+      {
+        "country": "CHINA (MAINLAND)",
+        "company": "Zibo Juncheng Chemical Co., Ltd.",
+        "location": "Zibo",
+        "capacity": 500,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 36.81,
+        "lng": 118.05,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 34.52,
+    "lng": 133.73,
+    "location": "Mizushima",
+    "country": "JAPAN",
+    "cluster_size": 1,
+    "companies": [
+      {
+        "country": "JAPAN",
+        "company": "Asahi Kasei Corp",
+        "location": "Mizushima",
+        "capacity": 390,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 34.52,
+        "lng": 133.73,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 35.5,
+    "lng": 140.12,
+    "location": "Ichihara",
+    "country": "JAPAN",
+    "cluster_size": 3,
+    "companies": [
+      {
+        "country": "JAPAN",
+        "company": "Denka Co Ltd",
+        "location": "Ichihara",
+        "capacity": 270,
+        "maintenance": "6월, 7월, 8월",
+        "is_current_maintenance": false,
+        "lat": 35.5,
+        "lng": 140.12,
+        "has_future_maintenance": true
+      },
+      {
+        "country": "JAPAN",
+        "company": "Idemitsu Kosan Co., Ltd",
+        "location": "Ichihara",
+        "capacity": 210,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 35.5,
+        "lng": 140.12,
+        "has_future_maintenance": false
+      },
+      {
+        "country": "JAPAN",
+        "company": "Toyo Styrene Co., Ltd.",
+        "location": "Ichihara",
+        "capacity": 2,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 35.5,
+        "lng": 140.12,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": true
+  },
+  {
+    "lat": 34.06,
+    "lng": 131.81,
+    "location": "Shunan",
+    "country": "JAPAN",
+    "cluster_size": 2,
+    "companies": [
+      {
+        "country": "JAPAN",
+        "company": "Idemitsu Kosan Co., Ltd",
+        "location": "Shunan",
+        "capacity": 210,
+        "maintenance": "8월, 9월, 10월",
+        "is_current_maintenance": false,
+        "lat": 34.06,
+        "lng": 131.81,
+        "has_future_maintenance": true
+      },
+      {
+        "country": "JAPAN",
+        "company": "Idemitsu Kosan Co., Ltd",
+        "location": "Shunan",
+        "capacity": 120,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 34.06,
+        "lng": 131.81,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": true
+  },
+  {
+    "lat": 33.24,
+    "lng": 131.61,
+    "location": "Oita",
+    "country": "JAPAN",
+    "cluster_size": 2,
+    "companies": [
+      {
+        "country": "JAPAN",
+        "company": "NS Styrene Monomer Co., Ltd.",
+        "location": "Oita",
+        "capacity": 190,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 33.24,
+        "lng": 131.61,
+        "has_future_maintenance": false
+      },
+      {
+        "country": "JAPAN",
+        "company": "NS Styrene Monomer Co., Ltd.",
+        "location": "Oita",
+        "capacity": 232,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 33.24,
+        "lng": 131.61,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 36.78,
+    "lng": 126.45,
+    "location": "Seosan",
+    "country": "KOREA, SOUTH",
+    "cluster_size": 4,
+    "companies": [
+      {
+        "country": "KOREA, SOUTH",
+        "company": "Hanwha TotalEnergies Petrochemical Co Ltd",
+        "location": "Seosan",
+        "capacity": 400,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 36.78,
+        "lng": 126.45,
+        "has_future_maintenance": false
+      },
+      {
+        "country": "KOREA, SOUTH",
+        "company": "Hanwha TotalEnergies Petrochemical Co Ltd",
+        "location": "Seosan",
+        "capacity": 650,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 36.78,
+        "lng": 126.45,
+        "has_future_maintenance": false
+      },
+      {
+        "country": "KOREA, SOUTH",
+        "company": "Lotte Chemical Corporation",
+        "location": "Seosan",
+        "capacity": 208,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 36.78,
+        "lng": 126.45,
+        "has_future_maintenance": false
+      },
+      {
+        "country": "KOREA, SOUTH",
+        "company": "Lotte Chemical Corporation",
+        "location": "Seosan",
+        "capacity": 372,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 36.78,
+        "lng": 126.45,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 35.54,
+    "lng": 129.31,
+    "location": "Ulsan",
+    "country": "KOREA, SOUTH",
+    "cluster_size": 1,
+    "companies": [
+      {
+        "country": "KOREA, SOUTH",
+        "company": "SK Picglobal Co., Ltd.",
+        "location": "Ulsan",
+        "capacity": 400,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 35.54,
+        "lng": 129.31,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 34.76,
+    "lng": 127.66,
+    "location": "Yeosu",
+    "country": "KOREA, SOUTH",
+    "cluster_size": 1,
+    "companies": [
+      {
+        "country": "KOREA, SOUTH",
+        "company": "YEOCHUN NCC Co Ltd",
+        "location": "Yeosu",
+        "capacity": 346,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 34.76,
+        "lng": 127.66,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 23.77,
+    "lng": 120.25,
+    "location": "Mailiao",
+    "country": "TAIWAN",
+    "cluster_size": 3,
+    "companies": [
+      {
+        "country": "TAIWAN",
+        "company": "Formosa Chemical & Fiber Corp",
+        "location": "Mailiao",
+        "capacity": 250,
+        "maintenance": "1월, 6월, 11월",
+        "is_current_maintenance": false,
+        "lat": 23.77,
+        "lng": 120.25,
+        "has_future_maintenance": true
+      },
+      {
+        "country": "TAIWAN",
+        "company": "Formosa Chemical & Fiber Corp",
+        "location": "Mailiao",
+        "capacity": 350,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 23.77,
+        "lng": 120.25,
+        "has_future_maintenance": false
+      },
+      {
+        "country": "TAIWAN",
+        "company": "Formosa Chemical & Fiber Corp",
+        "location": "Mailiao",
+        "capacity": 720,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 23.77,
+        "lng": 120.25,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": true
+  },
+  {
+    "lat": 22.77,
+    "lng": 120.36,
+    "location": "Ta-She District",
+    "country": "TAIWAN",
+    "cluster_size": 2,
+    "companies": [
+      {
+        "country": "TAIWAN",
+        "company": "Grand Pacific Petrochemical Corporation",
+        "location": "Ta-She District",
+        "capacity": 240,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 22.77,
+        "lng": 120.36,
+        "has_future_maintenance": false
+      },
+      {
+        "country": "TAIWAN",
+        "company": "Grand Pacific Petrochemical Corporation",
+        "location": "Ta-She District",
+        "capacity": 130,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 22.77,
+        "lng": 120.36,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": false
+  },
+  {
+    "lat": 22.49,
+    "lng": 120.4,
+    "location": "Lin Yuan District",
+    "country": "TAIWAN",
+    "cluster_size": 2,
+    "companies": [
+      {
+        "country": "TAIWAN",
+        "company": "Taiwan Styrene Monomer Corporation",
+        "location": "Lin Yuan District",
+        "capacity": 180,
+        "maintenance": "10월",
+        "is_current_maintenance": false,
+        "lat": 22.49,
+        "lng": 120.4,
+        "has_future_maintenance": true
+      },
+      {
+        "country": "TAIWAN",
+        "company": "Taiwan Styrene Monomer Corporation",
+        "location": "Lin Yuan District",
+        "capacity": 160,
+        "maintenance": "없음",
+        "is_current_maintenance": false,
+        "lat": 22.49,
+        "lng": 120.4,
+        "has_future_maintenance": false
+      }
+    ],
+    "has_future_maintenance": true
+  }
+];
+        
+        // 국가별 색상
+        const countryColors = {
+            'CHINA (MAINLAND)': '#FF6B6B',
+            'KOREA, SOUTH': '#4ECDC4',
+            'JAPAN': '#FFE66D',
+            'TAIWAN': '#A8E6CF'
+        };
+        
+        // 지도 초기화
+        const map = L.map('map').setView([35.0, 120.0], 5);
+        
+        // 타일 레이어 (깔끔한 스타일, 라벨 없음)
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+            attribution: '© OpenStreetMap contributors, © CARTO',
+            maxZoom: 18,
+            minZoom: 4,
+            subdomains: 'abcd'
+        }).addTo(map);
+        
+        // 통계
+        let totalCompanies = 0;
+        let maintenanceCount = 0;
+        let currentMaintenanceCount = 0;
+        let futureMaintenanceCount = 0;
+        const countryCounts = {
+            'CHINA (MAINLAND)': 0,
+            'KOREA, SOUTH': 0,
+            'JAPAN': 0,
+            'TAIWAN': 0
+        };
+        
+        // 마커 추가
+        clusters.forEach(cluster => {
+            const isMultiple = cluster.cluster_size > 1;
+            const companies = cluster.companies;
+            
+            // 통계 계산
+            companies.forEach(c => {
+                totalCompanies++;
+                if (countryCounts.hasOwnProperty(c.country)) {
+                    countryCounts[c.country]++;
+                }
+                if (c.maintenance !== '없음') maintenanceCount++;
+                if (c.is_current_maintenance) currentMaintenanceCount++;
+                if (c.has_future_maintenance) futureMaintenanceCount++;
+            });
+            
+            // 색상 결정
+            const hasCurrentMaintenance = companies.some(c => c.is_current_maintenance);
+            const hasFutureMaintenance = cluster.has_future_maintenance;
+            
+            let color, shape;
+            if (hasCurrentMaintenance) {
+                // 현재 정기보수 중 - 검은색
+                color = '#2C3E50';
+                shape = 'pin';
+            } else if (hasFutureMaintenance) {
+                // 정기보수 예정 - 파란색 삼각형
+                color = '#3498DB';
+                shape = 'triangle';
+            } else {
+                // 일반 - 국가별 색상
+                color = countryColors[cluster.country] || '#95a5a6';
+                shape = 'pin';
+            }
+            
+            const hasMaintenance = companies.some(c => c.maintenance !== '없음');
+            
+            // 아이콘 생성
+            let iconHtml;
+            if (isMultiple) {
+                // 클러스터 마커
+                if (shape === 'triangle') {
+                    iconHtml = `<div class="marker-triangle-cluster" style="border-bottom-color: ${color};">
+                        <span class="triangle-cluster-number">${cluster.cluster_size}</span>
+                    </div>`;
+                } else {
+                    iconHtml = `<div class="marker-cluster" style="background-color: ${color};">
+                        <span class="cluster-number">${cluster.cluster_size}</span>
+                    </div>`;
+                }
+            } else {
+                // 단일 마커
+                if (shape === 'triangle') {
+                    iconHtml = `<div class="marker-triangle" style="border-bottom-color: ${color};"></div>`;
+                } else {
+                    iconHtml = `<div class="marker-pin ${hasMaintenance ? 'has-maintenance' : ''}" style="background-color: ${color};"></div>`;
+                }
+            }
+            
+            const customIcon = L.divIcon({
+                className: 'custom-marker',
+                html: iconHtml,
+                iconSize: [18, 24],
+                iconAnchor: [9, 24],
+                popupAnchor: [0, -24]
+            });
+            
+            // 마커 생성
+            const marker = L.marker([cluster.lat, cluster.lng], {
+                icon: customIcon,
+                title: cluster.location
+            }).addTo(map);
+            
+            // 팝업 내용
+            let popupContent;
+            
+            if (isMultiple) {
+                // 여러 업체 리스트
+                const companiesList = companies.map(c => {
+                    let badge = '';
+                    if (c.is_current_maintenance) {
+                        badge = '⚫ ';
+                    } else if (c.has_future_maintenance) {
+                        badge = '🔵 ';
+                    }
+                    
+                    return `
+                    <div class="company-item ${c.is_current_maintenance ? 'current-maintenance' : ''}">
+                        <div class="company-name">${badge}${c.company}</div>
+                        <div class="company-details">
+                            <span class="detail-badge">⚡ <strong>${c.capacity === 'N/A' ? 'N/A' : c.capacity + ' MT'}</strong></span>
+                            <span class="detail-badge">🔧 ${c.maintenance !== '없음' ? c.maintenance : '없음'}</span>
+                        </div>
+                    </div>
+                `}).join('');
+                
+                popupContent = `
+                    <div class="popup-header">
+                        <div class="popup-title">${cluster.location} (${cluster.cluster_size}개 업체)</div>
+                        <div class="popup-location">📍 ${cluster.country}</div>
+                    </div>
+                    <div class="popup-body">
+                        ${companiesList}
+                    </div>
+                `;
+            } else {
+                // 단일 업체
+                const c = companies[0];
+                const currentMaintenanceBadge = c.is_current_maintenance ? 
+                    '<div class="current-maintenance-alert">⚫ 현재 정기보수 중 (2월)</div>' : '';
+                
+                popupContent = `
+                    <div class="popup-header">
+                        <div class="popup-title">${c.company}</div>
+                        <div class="popup-location">📍 ${c.location}, ${c.country}</div>
+                    </div>
+                    <div class="popup-body">
+                        ${currentMaintenanceBadge}
+                        <div class="popup-info">
+                            <span class="popup-icon">⚡</span>
+                            <span style="font-weight: 600; color: #555;">Capacity:</span>
+                            <span class="capacity-badge">${c.capacity === 'N/A' ? 'N/A' : c.capacity + ' MT'}</span>
+                        </div>
+                        <div class="popup-info">
+                            <span class="popup-icon">🔧</span>
+                            <span style="font-weight: 600; color: #555;">정기보수:</span>
+                            <span class="maintenance-badge ${c.maintenance !== '없음' ? '' : 'no-maintenance'}">
+                                ${c.maintenance !== '없음' ? c.maintenance : '없음'}
+                            </span>
+                        </div>
+                    </div>
+                `;
+            }
+            
+
+        
+        // 위치 라벨 표시 함수
+        let currentLabel = null;
+        
+        function showLocationLabel(cluster) {
+            // 기존 라벨 제거
+            if (currentLabel) {
+                map.removeLayer(currentLabel);
+            }
+            
+            // 새 라벨 생성
+            const labelContent = `<div class="location-label">${cluster.location}</div>`;
+            currentLabel = L.marker([cluster.lat, cluster.lng], {
+                icon: L.divIcon({
+                    className: 'location-label-marker',
+                    html: labelContent,
+                    iconSize: [100, 40],
+                    iconAnchor: [50, 50]
+                }),
+                zIndexOffset: 1000
+            }).addTo(map);
+        }
+
+            // 팝업 열릴 때 위치 라벨 표시
+            marker.on('popupopen', function() {
+                showLocationLabel(cluster);
+            });
+            
+            // 팝업 닫힐 때 라벨 제거
+            marker.on('popupclose', function() {
+                if (currentLabel) {
+                    map.removeLayer(currentLabel);
+                    currentLabel = null;
+                }
+            });
+            
+            marker.bindPopup(popupContent, {
+                maxWidth: 350,
+                className: 'custom-popup'
+            });
+        });
+        
+        console.log(`총 ${totalCompanies}개 업체, ${clusters.length}개 마커`);
+        
+        // 통계 업데이트
+        document.getElementById('total-count').textContent = totalCompanies;
+        document.getElementById('maintenance-count').textContent = maintenanceCount;
+        document.getElementById('current-maintenance-count').textContent = currentMaintenanceCount;
+        document.getElementById('future-maintenance-count').textContent = futureMaintenanceCount;
+        document.getElementById('china-count').textContent = countryCounts['CHINA (MAINLAND)'];
+        document.getElementById('korea-count').textContent = countryCounts['KOREA, SOUTH'];
+        document.getElementById('japan-count').textContent = countryCounts['JAPAN'];
+        document.getElementById('taiwan-count').textContent = countryCounts['TAIWAN'];
+    </script>
+</body>
+</html>
