@@ -1,14 +1,15 @@
 {
-  "total_global_capacity": 35000,
+  "total_global_capacity": 42500,
+  "last_updated": "2026-02-04",
   "plants": [
-    { "name": "Lotte Chemical", "location": "Daesan, Korea", "country": "Korea", "region": "NEA", "capacity": 580, "status": "Normal", "loss": 0, "lat": 37.03, "lng": 126.35 },
-    { "name": "Hanwha TotalEnergies", "location": "Daesan, Korea", "country": "Korea", "region": "NEA", "capacity": 650, "status": "Normal", "loss": 0, "lat": 37.04, "lng": 126.36 },
-    { "name": "Fujian Gulei", "location": "Zhangzhou, China", "country": "China", "region": "NEA", "capacity": 600, "status": "Maintenance", "loss": 100, "lat": 23.9, "lng": 117.6 },
-    { "name": "Nippon Steel (L1&2)", "location": "Oita, Japan", "country": "Japan", "region": "NEA", "capacity": 420, "status": "Maintenance", "loss": 70, "lat": 33.2, "lng": 131.6 },
-    { "name": "Kuwait Styrene", "location": "Shuaiba, Kuwait", "country": "Kuwait", "region": "ME", "capacity": 525, "status": "Shutdown", "loss": 85, "lat": 29.0, "lng": 48.1 },
-    { "name": "Repsol", "location": "Tarragona, Spain", "country": "Spain", "region": "Europe", "capacity": 450, "status": "Maintenance", "loss": 65, "lat": 41.1, "lng": 1.2 },
-    { "name": "Idemitsu SM", "location": "Pasir Gudang, Malaysia", "country": "Malaysia", "region": "SEA", "capacity": 240, "status": "Maintenance", "loss": 30, "lat": 1.4, "lng": 103.9 },
-    { "name": "Petrokemya", "location": "Al Jubail, Saudi Arabia", "country": "Saudi Arabia", "region": "ME", "capacity": 1120, "status": "Shutdown", "loss": 180, "lat": 27.0, "lng": 49.6 },
-    { "name": "LG Chem (Perm)", "location": "Yeocheon, Korea", "country": "Korea", "region": "NEA", "capacity": 500, "status": "Shutdown", "loss": 500, "lat": 34.8, "lng": 127.6 }
+    { "name": "Anhui Haoyuan Chemical", "city": "Fuyang", "address": "No.1 Yuanfeng Road, Yingdong Economic Development Zone", "capacity": 260, "status": "Normal", "loss": 0, "lat": 32.91, "lng": 115.86, "region": "NEA" },
+    { "name": "Bora LyondellBasell", "city": "Panjin", "address": "Binhai Road, Liaodong Bay New District", "capacity": 350, "status": "Normal", "loss": 0, "lat": 40.71, "lng": 122.12, "region": "NEA" },
+    { "name": "Fujian Gulei Petrochemical", "city": "Zhangzhou", "address": "Gulei Avenue, Gulei Port Economic Development Zone", "capacity": 600, "status": "Maintenance", "loss": 0, "lat": 23.93, "lng": 117.61, "region": "NEA" },
+    { "name": "Tianjin Bohua Chemical", "city": "Binhai", "address": "Nangang 1st St, Nangang Industrial Zone", "capacity": 450, "status": "Trouble", "loss": 35, "lat": 38.68, "lng": 117.65, "region": "NEA" },
+    { "name": "Zhejiang Petroleum & Chem", "city": "Zhoushan", "address": "Yushan Island Base, Daishan County", "capacity": 2400, "status": "Normal", "loss": 0, "lat": 30.34, "lng": 122.15, "region": "NEA" },
+    { "name": "Shanghai SECCO", "city": "Jinshan", "address": "No. 557, Muhua Road, Shanghai Chemical Industry Park", "capacity": 650, "status": "Normal", "loss": 0, "lat": 30.74, "lng": 121.43, "region": "NEA" },
+    { "name": "Kuwait Styrene", "city": "Shuaiba", "address": "Shuaiba Industrial Area", "capacity": 525, "status": "Trouble", "loss": 40, "lat": 29.03, "lng": 48.11, "region": "Middle East" },
+    { "name": "Petrokemya (SABIC)", "city": "Al Jubail", "address": "Al Jubail Industrial City", "capacity": 1120, "status": "Trouble", "loss": 85, "lat": 27.01, "lng": 49.62, "region": "Middle East" },
+    { "name": "Lotte Chemical", "city": "Daesan", "address": "Daesan-eup, Seosan-si, Korea", "capacity": 580, "status": "Normal", "loss": 0, "lat": 37.03, "lng": 126.35, "region": "Korea" }
   ]
 }
