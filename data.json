@@ -1,0 +1,14 @@
+{
+  "total_global_capacity": 35000,
+  "plants": [
+    { "name": "Lotte Chemical", "location": "Daesan, Korea", "country": "Korea", "region": "NEA", "capacity": 580, "status": "Normal", "loss": 0, "lat": 37.03, "lng": 126.35 },
+    { "name": "Hanwha TotalEnergies", "location": "Daesan, Korea", "country": "Korea", "region": "NEA", "capacity": 650, "status": "Normal", "loss": 0, "lat": 37.04, "lng": 126.36 },
+    { "name": "Fujian Gulei", "location": "Zhangzhou, China", "country": "China", "region": "NEA", "capacity": 600, "status": "Maintenance", "loss": 100, "lat": 23.9, "lng": 117.6 },
+    { "name": "Nippon Steel (L1&2)", "location": "Oita, Japan", "country": "Japan", "region": "NEA", "capacity": 420, "status": "Maintenance", "loss": 70, "lat": 33.2, "lng": 131.6 },
+    { "name": "Kuwait Styrene", "location": "Shuaiba, Kuwait", "country": "Kuwait", "region": "ME", "capacity": 525, "status": "Shutdown", "loss": 85, "lat": 29.0, "lng": 48.1 },
+    { "name": "Repsol", "location": "Tarragona, Spain", "country": "Spain", "region": "Europe", "capacity": 450, "status": "Maintenance", "loss": 65, "lat": 41.1, "lng": 1.2 },
+    { "name": "Idemitsu SM", "location": "Pasir Gudang, Malaysia", "country": "Malaysia", "region": "SEA", "capacity": 240, "status": "Maintenance", "loss": 30, "lat": 1.4, "lng": 103.9 },
+    { "name": "Petrokemya", "location": "Al Jubail, Saudi Arabia", "country": "Saudi Arabia", "region": "ME", "capacity": 1120, "status": "Shutdown", "loss": 180, "lat": 27.0, "lng": 49.6 },
+    { "name": "LG Chem (Perm)", "location": "Yeocheon, Korea", "country": "Korea", "region": "NEA", "capacity": 500, "status": "Shutdown", "loss": 500, "lat": 34.8, "lng": 127.6 }
+  ]
+}
